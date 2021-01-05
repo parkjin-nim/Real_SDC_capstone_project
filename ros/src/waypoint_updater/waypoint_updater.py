@@ -125,15 +125,10 @@ class WaypointUpdater(object):
         self.base_lane = waypoints
         
         # Construct KDTree to search closest wp in log n
-        rospy.loginfo('Constructing waypoint tree')
-
         if not self.waypoints_2d:
             self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] 
                                  for waypoint in waypoints.waypoints]
             self.waypoint_tree= KDTree(self.waypoints_2d)
-
-        rospy.loginfo('waypoint_tree data = %s', self.waypoint_tree.data)
-            
             
     def traffic_cb(self, msg):
         # Callback for /traffic_waypoint message.
