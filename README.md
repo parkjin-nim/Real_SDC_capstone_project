@@ -3,7 +3,7 @@
 [//]: # (Image References)
 
 
-[image0]: ./writeup/covershot.png "running_at_43mph"
+[image0]: ./writeup/covershot.png "cover"
 [image1]: ./writeup/Goal.png "architecture"
 [image2]: ./writeup/ROS.png "ROS pubsub-architecture"
 [image3]: ./writeup/perception.png "nn tl_detection"
@@ -229,3 +229,4 @@ Specific to these libraries, the simulator grader and Carla use the following:
 | OpenMP | N/A | N/A |
 
 We are working on a fix to line up the OpenCV versions between the two.
+
