@@ -43,7 +43,7 @@ Udacity Self-Driving Car Harware Specs:
 - TITAN X Graphics
 - 64-bit OS
 
-#### Waypoint updater node
+### Waypoint updater node
 
 The eventual purpose of this node is to publish a fixed number of waypoints ahead of the vehicle with the correct target velocities, depending on traffic lights and obstacles. The goal for the first version of the node should be simply to subscribe to the topics
 
@@ -91,7 +91,7 @@ styx_msgs/Waypoint[] waypoints
       :
 ```
 
-#### DBW node
+### DBW node
 
 Once messages are being published to /final_waypoints, the vehicle's waypoint follower publish twist commands to the /twist_cmd topic. The drive-by-wire node (dbw_node.py) subscribe to /twist_cmd and use various controllers to provide appropriate throttle, brake, and steering commands. These commands can then be published to the following topics:
 
@@ -116,7 +116,7 @@ Additionally, although the simulator displays speed in mph, all units in the pro
 Finally, Carla has an automatic transmission, which means the car will roll forward if no brake and no throttle is applied. To prevent Carla from moving requires about 700 Nm of torque.
 
 
-#### Traffic Light Detection Node
+### Traffic Light Detection Node
 
 Once the vehicle is able to process waypoints, generate steering and throttle commands, and traverse the course, it also need stop for traffic lights and obstacles. Traffic light detection node can be split into 2 parts, detection and waypoint publishing.
 
