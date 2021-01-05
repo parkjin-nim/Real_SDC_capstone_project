@@ -54,6 +54,8 @@ and publish a list of waypoints to
 
     - /final_waypoints
 
+- **waypoint_updater.py**
+
 The /base_waypoints topic publishes a list of all waypoints for the track, so this list includes waypoints both before and after the vehicle (note that the publisher for /base_waypoints publishes only once). For this step in the project, the list published to /final_waypoints should include just a fixed number of waypoints currently ahead of the vehicle:
 
 The first waypoint in the list published to /final_waypoints should be the first waypoint that is currently ahead of the car.
