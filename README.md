@@ -3,17 +3,15 @@
 [//]: # (Image References)
 
 
-[image0]: ./data/43mph.png "running_at_43mph"
+[image0]: ./writeup/covershot.png "running_at_43mph"
 [image1]: ./writeup/Goal.png "architecture"
 [image2]: ./writeup/ROS.png "ROS pubsub-architecture"
-[image3]: ./writeup/speed1_curv.png "auto-tunning on curv at speed1"
+[image3]: ./writeup/perception.png "nn tl_detection"
 
 
 ---
 
 ![alt text][image0]
-
-[video](https://www.youtube.com/watch?v=AJfq0BIkAko)
 
 ---
 
@@ -30,41 +28,119 @@ The goal of this project was to enable Carla(Udacity’s real self-driving car) 
 ![alt text][image1]
 
 
+---
+
 ## Implementation
 
-The project was implemented on the ROS framework of Udacity. It works both in Udacity simulator and Carla. 
+The project was implemented on the ROS framework and Ubuntu Linux environment(refer to 'install' section), such that it run on both Udacity simulator and Carla. The beloww is the ROS nodes and pub-sub architecture of SDC system.
 
 ![alt text][image2]
 
-- **Perception**
-
-Traffic light detection node can be split into 2 parts:
-Detection: Detect the traffic light and its color from the /image_color. The topic /vehicle/traffic_lights contains the exact location and status of all traffic lights in simulator, so you can test your output.
-Waypoint publishing: Once you have correctly identified the traffic light and determined its position, you can convert it to a waypoint index and publish it on the topic /traffic_waypoint
-
-
-- **Planning**
-
-Waypoint updater node subscribes to /base_waypoints and /current_pose and publishes to /final_waypoints. The /base_waypoints topic publishes a list of all waypoints for the track, so this list includes waypoints both before and after the vehicle. The list published to /final_waypoints include just a fixed number of waypoints currently ahead of the vehicle. The first waypoint in the list published to /final_waypoints is the first waypoint that is currently ahead of the car. The total number of waypoints ahead of the vehicle that is included in the /final_waypoints list is provided by the LOOKAHEAD_WPS, which may vary depending on the computing limits.
-
-Waypoint updater node sets target velocity for each waypoint based on upcoming traffic lights and obstacles. For example, if Carla sees a red traffic light on the horizon, it sets decelerating velocities at the nodes leading up to the traffic light. Based on /traffic_waypoint information, it changes the waypoint target velocities before publishing to /final_waypoints. 
-
-
-- **Control**
-
-Once your waypoint updater node is publishing /final_waypoints, the waypoint_follower node will start publishing messages to the /twist_cmd topic. Drive-By-Wire(DBW) node takes target trajectory information as input and sends control commands to navigate the vehicle. Based on /twist_cmd published by waypoint_follower node, the car could should drive in the simulator and stop at red traffic lights and move when they are green.
-
-
-
-## Testing
-
-Udacity Self-Driving Car Harware Specs
+Udacity Self-Driving Car Harware Specs:
 
 - 31.4 GiB Memory
 - Intel Core i7-6700K CPU @ 4 GHz x 8
 - TITAN X Graphics
 - 64-bit OS
 
+#### Waypoint updater node
+
+The eventual purpose of this node is to publish a fixed number of waypoints ahead of the vehicle with the correct target velocities, depending on traffic lights and obstacles. The goal for the first version of the node should be simply to subscribe to the topics
+
+    - /base_waypoints
+    - /current_pose
+
+and publish a list of waypoints to
+
+    - /final_waypoints
+
+The /base_waypoints topic publishes a list of all waypoints for the track, so this list includes waypoints both before and after the vehicle (note that the publisher for /base_waypoints publishes only once). For this step in the project, the list published to /final_waypoints should include just a fixed number of waypoints currently ahead of the vehicle:
+
+The first waypoint in the list published to /final_waypoints should be the first waypoint that is currently ahead of the car.
+The total number of waypoints ahead of the vehicle that should be included in the /final_waypoints list is provided by the LOOKAHEAD_WPS variable in waypoint_updater.py.
+
+
+Waypoint updater node sets target velocity for each waypoint based on upcoming traffic lights and obstacles. For example, if Carla sees a red traffic light on the horizon, it sets decelerating velocities at the nodes leading up to the traffic light. Based on /traffic_waypoint information, it changes the waypoint target velocities before publishing to /final_waypoints. 
+From the code in waypoint_updater.py, both the /final_waypoints and /base_waypoints topics have message type Lane as below. To decelerate, a square root function emulates pressing the brake pedal to be getting exponentially harder as distance decreases and the output velocity values are written as the linear velocity values of the waypoint. 
+
+```Shell
+std_msgs/Header header
+:
+styx_msgs/Waypoint[] waypoints
+  geometry_msgs/PoseStamped pose
+    std_msgs/Header header
+    :
+    geometry_msgs/Pose pose
+      geometry_msgs/Point position
+        float64 x
+        float64 y
+        float64 z
+      geometry_msgs/Quaternion orientation
+      :
+  geometry_msgs/TwistStamped twist
+    std_msgs/Header header
+    :
+    geometry_msgs/Twist twist
+      geometry_msgs/Vector3 linear
+        float64 x
+        float64 y
+        float64 z
+      geometry_msgs/Vector3 angular
+      :
+```
+
+#### DBW node
+
+Once messages are being published to /final_waypoints, the vehicle's waypoint follower publish twist commands to the /twist_cmd topic. The drive-by-wire node (dbw_node.py) subscribe to /twist_cmd and use various controllers to provide appropriate throttle, brake, and steering commands. These commands can then be published to the following topics:
+
+    - /vehicle/throttle_cmd
+    - /vehicle/brake_cmd
+    - /vehicle/steering_cmd
+
+Since a safety driver may take control of the car during testing, you should not assume that the car is always following your commands. If a safety driver does take over, your PID controller mistakenly accumulate error, so you need to be mindful of DBW status to be turned off appropriately. The DBW status can be found by subscribing to /vehicle/dbw_enabled. When operating the simulator please check DBW status and ensure that it is in the desired state. DBW can be toggled by clicking "Manual" in the simulator GUI.
+
+- **dbw_node.py**
+
+This python file implements the dbw_node publishers and subscribers. There are ROS subscribers for the /current_velocity, /twist_cmd, and /vehicle/dbw_enabled topics. This file also imports the Controller class from twist_controller.py which is used for the necessary controllers. The function used to publish throttle, brake, and steering is publish.
+
+The throttle values passed to publish are in the range 0 to 1, although a throttle of 1 means the vehicle throttle is fully engaged. Brake values passed to publish are in units of torque (N*m). The correct values for brake can be computed using the desired acceleration, weight of the vehicle, and wheel radius.
+
+- **twist_controller.py**
+    
+This file contains a stub of the Controller class. We can use this class to implement vehicle control. For example, the control method can take twist data as input and return throttle, brake, and steering values. Within this class, we can import and use the provided pid.py and lowpass.py if needed for acceleration, and yaw_controller.py for steering. 
+
+**Note** that dbw_node.py is currently set up to publish steering, throttle, and brake commands at 50hz. The DBW system on Carla expects messages at this frequency, and would disengage (reverting control back to the driver) if control messages are published at less than 10hz. This is a safety feature on the car intended to return control to the driver if the software system crashes. 
+Additionally, although the simulator displays speed in mph, all units in the project code use the metric system, including the units of messages in the /current_velocity topic (which have linear velocity in m/s).
+Finally, Carla has an automatic transmission, which means the car will roll forward if no brake and no throttle is applied. To prevent Carla from moving requires about 700 Nm of torque.
+
+
+#### Traffic Light Detection Node
+
+Once the vehicle is able to process waypoints, generate steering and throttle commands, and traverse the course, it also need stop for traffic lights and obstacles. Traffic light detection node can be split into 2 parts, detection and waypoint publishing.
+
+![alt text][image3]
+
+- **tl_detector.py**
+
+This python file processes the incoming traffic light data and camera images. It uses the light classifier to get a color prediction, and publishes the location of any upcoming red lights. The topic /vehicle/traffic_lights contains the exact location and status of all traffic lights in simulator, so you can test your output. The traffic light detection node (tl_detector.py) subscribes to four topics:
+   
+        - /base_waypoints provides the complete list of waypoints for the course.
+        - /current_pose can be used to determine the vehicle's location.
+        - /image_color which provides an image stream from the car's camera. These images are used to determine the color of upcoming traffic lights.
+        - /vehicle/traffic_lights provides the (x, y, z) coordinates of all traffic lights.
+        
+Once you have correctly identified the traffic light and determined its position, you can convert it to a waypoint index and publish it on the topic /traffic_waypoint. The node should publish the index of the waypoint for nearest upcoming red light's stop line to a single topic:
+
+        - /traffic_waypoint
+
+- **tl_classifier.py**
+    
+This file contains the TLClassifier class. The get_classification method can take a camera image as input and return an ID corresponding to the color state of the traffic light in the image. Note that Carla currently has TensorFlow 1.3.0 installed.
+
+---
+
+
+## Install
 
 Please use **one** of the two installation options, either native **or** docker installation.
 
