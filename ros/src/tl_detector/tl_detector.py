@@ -13,6 +13,7 @@ import time
 import yaml
 from scipy.spatial import KDTree
 
+
 STATE_COUNT_THRESHOLD = 3
 
 class TLDetector(object):
@@ -28,6 +29,7 @@ class TLDetector(object):
         
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
+
         self.last_wp = -1
         self.state_count = 0
                 
@@ -38,7 +40,7 @@ class TLDetector(object):
 
         ## In simulator, subsampling every 5 frame
         self.is_site = self.config['is_site']
-        self.subsampling = 5 if not self.is_site else 2
+        self.subsampling = 2 if not self.is_site else 1
         self.confidence  = 0.7 if not self.is_site else 0.2
         self.light_classifier = TLClassifier(subsample_rate=self.subsampling, confidence_level=self.confidence)
         
@@ -97,8 +99,21 @@ class TLDetector(object):
         '''
         if self.subsampling > 1:
                     
-            light_wp = light_wp if state == TrafficLight.RED else self.last_wp if state == TrafficLight.SKIP else -1
-            rospy.loginfo("state: %s, last_wp: %s", state, light_wp)
+            #light_wp = light_wp if state == TrafficLight.RED else self.last_wp if state == TrafficLight.SKIP else -1
+            if state == TrafficLight.RED:
+                self.last_state = state
+            elif state == TrafficLight.GREEN:
+                light_wp = -1
+                self.last_state = state
+            elif state == TrafficLight.SKIP and self.last_state == TrafficLight.RED:
+                 light_wp = self.last_wp
+            elif state == TrafficLight.UNKNOWN and self.last_state == TrafficLight.RED:
+                 light_wp = self.last_wp
+            else:
+                 light_wp = -1
+                
+            rospy.loginfo("[TL Detector] state: %s, last_wp: %s", state, light_wp)
+
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
 
@@ -115,6 +130,8 @@ class TLDetector(object):
             else:
                 self.upcoming_red_light_pub.publish(Int32(self.last_wp))
             self.state_count += 1
+
+            
 
 
     def get_closest_waypoint(self, x, y):
@@ -194,12 +211,12 @@ class TLDetector(object):
                     closest_light = light
                     line_wp_idx = temp_wp_idx
        
-        if closest_light:
-        #if closest_light and diff < 100:
+        #if closest_light:
+        if closest_light and diff < 75:
             state = self.get_light_state(light)
             return line_wp_idx, state
                 
-             
+        #no clesest_light is None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':

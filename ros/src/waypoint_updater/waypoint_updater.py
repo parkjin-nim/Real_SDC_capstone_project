@@ -91,7 +91,6 @@ class WaypointUpdater(object):
             lane.waypoints = base_waypoints
         else:
             lane.waypoints = self.decelerate_waypoints(base_waypoints, closest_idx)
-        
         return lane
     
     def decelerate_waypoints(self, waypoints, closest_idx):
@@ -102,10 +101,13 @@ class WaypointUpdater(object):
             p.pose = wp.pose
             
             stop_idx = max(self.stopline_wp_idx - closest_idx - 2, 0)
-            dist     = self.distance(waypoints, i, stop_idx)      
+            dist     = self.distance(waypoints, i, stop_idx) 
+            
             # square root function to decelerate
             # pressing the brake pedal is getting exponentially harder as distance decreases
             vel      = math.sqrt(2 * MAX_DECEL * dist)
+            #car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
+
             if vel < 1.:
                 vel = 0.
             
@@ -133,6 +135,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # Callback for /traffic_waypoint message.
         self.stopline_wp_idx = msg.data
+        #rospy.loginfo("[Waypoint updater] stopline wp indx:%s", self.stopline_wp_idx)
 
 
     def obstacle_cb(self, msg):

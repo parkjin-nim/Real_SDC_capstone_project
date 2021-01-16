@@ -90,7 +90,7 @@ class TLClassifier(object):
 
             for c, s, b in zipped_items:
                 if s > self.confidence_cutoff and c == 10.:
-                    rospy.loginfo("[TL Detector] Detected TL | score: " + str(scores))
+                    #rospy.loginfo("[TL Detector] Detected TL | score: " + str(scores))
 
                     # skip if box is too small or inproportional
                     box_height, box_width = (b[2] - b[0]), (b[3] - b[1])
@@ -104,7 +104,7 @@ class TLClassifier(object):
             cropped_tls = []
             #image_as_np_array = np.asarray(image, dtype="uint8")
             for box in tl_boxes:
-                rospy.loginfo("[TL Detector] Detected box: " +str(box))
+                #rospy.loginfo("[TL Detector] Detected box: " +str(box))
                 cropped_tls.append(
                         # Do not use PIL for crop. use cv2 functions tha takes np.ndarray type as input
                         cv2.resize(cv2_image[int(box[0]+10) : int(box[0]+(box[2]-box[0])/2.5), 
@@ -120,14 +120,15 @@ class TLClassifier(object):
 
                 v_channel = cropped_image_hsv[:, :, 2]
                 brightness = np.sum(v_channel)
-                rospy.loginfo("[TL Detector] Red TL brightness: " + str(brightness))
+                #rospy.loginfo("[TL Detector] Red TL brightness: " + str(brightness))
                 
                 # in simulator, RED light is usually greater than 50000
                 if int(brightness) > 50000: 
-                    rospy.loginfo("[TL Detector] Detected RED light")
+                    rospy.loginfo("[TL Detector] Detected RED light"+ str(brightness))
                     return TrafficLight.RED
                 else:
-                    return TrafficLight.UNKNOWN
+                  rospy.loginfo("[TL Detector] Detected GREEN light"+ str(brightness))
+                  return TrafficLight.GREEN
 
             return TrafficLight.UNKNOWN
         
